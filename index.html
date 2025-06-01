@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Google Suche mit URL-Kürzer</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: #f0f0f0;
+    color: #222;
+  }
+  label, button {
+    font-weight: bold;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+  }
+  button {
+    cursor: pointer;
+    margin-right: 10px;
+    padding: 8px 12px;
+  }
+  .url-container {
+    background: #fff;
+    padding: 10px;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    box-shadow: 0 0 6px #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  a {
+    color: #0066cc;
+    text-decoration: none;
+    word-break: break-all;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  .btn-copy {
+    background: #007bff;
+    border: none;
+    color: white;
+    border-radius: 4px;
+  }
+  .btn-copy:hover {
+    background: #0056b3;
+  }
+  #open-short {
+    background: #28a745;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin-top: 1rem;
+    font-weight: bold;
+  }
+  #open-short:disabled {
+    background: #94d3a2;
+    cursor: not-allowed;
+  }
+  #status {
+    margin-bottom: 1rem;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<h1>Google Suche mit URL-Kürzer</h1>
+
+<label for="searchTerm">Suchbegriff:</label>
+<input type="text" id="searchTerm" placeholder="z.B. mac and cheese" />
+
+<button id="searchBtn">Suchen & Kürzen</button>
+
+<div id="status"></div>
+
+<div id="originalUrlContainer" class="url-container" style="display:none;">
+  <a id="originalUrl" href="#" target="_blank" rel="noopener"></a>
+  <button class="btn-copy" data-copy-target="originalUrl">Kopieren</button>
+</div>
+
+<div id="shortUrlContainer" class="url-container" style="display:none;">
+  <a id="shortUrl" href="#" target="_blank" rel="noopener"></a>
+  <button class="btn-copy" data-copy-target="shortUrl">Kopieren</button>
+</div>
+
+<button id="open-short" disabled>Verkürzte URL im neuen Tab öffnen</button>
+
+<script>
+  const searchBtn = document.getElementById('searchBtn');
+  const searchTermInput = document.getElementById('searchTerm');
+  const status = document.getElementById('status');
+  const originalUrlContainer = document.getElementById('originalUrlContainer');
+  const shortUrlContainer = document.getElementById('shortUrlContainer');
+  const originalUrlLink = document.getElementById('originalUrl');
+  const shortUrlLink = document.getElementById('shortUrl');
+  const openShortBtn = document.getElementById('open-short');
+
+  function encodeQuery(str) {
+    return encodeURIComponent(str.trim()).replace(/%20/g, '+');
+  }
+
+  async function shortenUrl(url) {
+    // TinyURL API:
+    const apiUrl = 'https://tinyurl.com/api-create.php?url=' + encodeURIComponent(url);
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error('Fehler beim Kürzen');
+      const shortUrl = await response.text();
+      return shortUrl;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  searchBtn.addEventListener('click', async () => {
+    const term = searchTermInput.value.trim();
+    if (!term) {
+      alert('Bitte gib einen Suchbegriff ein.');
+      return;
+    }
+
+    status.textContent = 'Bitte warten...';
+    openShortBtn.disabled = true;
+    originalUrlContainer.style.display = 'none';
+    shortUrlContainer.style.display = 'none';
+
+    const originalUrl = `https://www.google.com/search?q=${encodeQuery(term)}`;
+    originalUrlLink.href = originalUrl;
+    originalUrlLink.textContent = originalUrl;
+
+    try {
+      const shortUrl = await shortenUrl(originalUrl);
+      shortUrlLink.href = shortUrl;
+      shortUrlLink.textContent = shortUrl;
+
+      originalUrlContainer.style.display = 'flex';
+      shortUrlContainer.style.display = 'flex';
+      status.textContent = '';
+      openShortBtn.disabled = false;
+
+    } catch (err) {
+      status.textContent = 'Fehler beim Kürzen der URL.';
+      openShortBtn.disabled = true;
+    }
+  });
+
+  // Kopierfunktion
+  document.querySelectorAll('.btn-copy').forEach(button => {
+    button.addEventListener('click', () => {
+      const targetId = button.getAttribute('data-copy-target');
+      const urlToCopy = document.getElementById(targetId).href;
+      navigator.clipboard.writeText(urlToCopy).then(() => {
+        alert('Link wurde in die Zwischenablage kopiert!');
+      }).catch(() => {
+        alert('Kopieren nicht möglich.');
+      });
+    });
+  });
+
+  // Öffnen Button
+  openShortBtn.addEventListener('click', () => {
+    const url = shortUrlLink.href;
+    if (url) window.open(url, '_blank', 'noopener');
+  });
+</script>
+
+</body>
+</html>
